@@ -28,6 +28,7 @@ Part 2
 In this section, I mainly looked to answer two questions: What is the
 best time of day to fly to minimize delays and What is the best time of
 year to fly to minimize delays? Here are the results:
+
 ![](Excercise1_files/figure-markdown_strict/unnamed-chunk-3-1.png)
 
 For the times of day, I divided the 24 hours into 4, 6 hour periods.
@@ -63,9 +64,9 @@ rsme of the set to build the final predictive graph.
 
 ![](Excercise1_files/figure-markdown_strict/unnamed-chunk-6-1.png)
 
-    ## Optimal K for 65 AMG trim:  38
+    ## Optimal K for 65 AMG trim:  47
 
-    ## Optimal K for 350 trim:  10
+    ## Optimal K for 350 trim:  89
 
 ![](Excercise1_files/figure-markdown_strict/unnamed-chunk-6-2.png)![](Excercise1_files/figure-markdown_strict/unnamed-chunk-6-3.png)
 
