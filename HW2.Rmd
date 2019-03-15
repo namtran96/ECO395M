@@ -1,0 +1,394 @@
+---
+title: "HW2"
+author: "Nam Tran"
+date: "March 15, 2019"
+output:
+  md_document: default
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Saratoga House Prices
+```{r message = FALSE, warning = FALSE, include = FALSE}
+library(tidyverse)
+library(mosaic)
+library(FNN)
+library(foreach)
+library(dplyr)
+data(SaratogaHouses)
+
+summary(SaratogaHouses)
+
+n = nrow(SaratogaHouses)
+n_train = round(0.8*n)  # round to nearest integer
+n_test = n - n_train
+train_cases = sample.int(n, n_train, replace=FALSE)
+test_cases = setdiff(1:n, train_cases)
+saratoga_train = SaratogaHouses[train_cases,]
+saratoga_test = SaratogaHouses[test_cases,]
+
+rmse = function(y, yhat) {
+  sqrt( mean( (y - yhat)^2 ) )
+}
+
+
+
+# easy averaging over train/test splits
+library(mosaic)
+
+rmse_vals = do(100)*{
+  
+  # re-split into train and test cases
+  n_train = round(0.8*n)  # round to nearest integer
+  n_test = n - n_train
+  train_cases = sample.int(n, n_train, replace=FALSE)
+  test_cases = setdiff(1:n, train_cases)
+  saratoga_train = SaratogaHouses[train_cases,]
+  saratoga_test = SaratogaHouses[test_cases,]
+  
+  # fit to this training set
+  
+  lm_sm = lm(price ~ bedrooms + bathrooms +lotSize + age, data= saratoga_train )
+  
+  lm_med = lm(price ~ . - sewer - waterfront - landValue - newConstruction, data=saratoga_train)
+  
+  
+  lm_big = lm(price ~ lotSize + age +landValue + waterfront + newConstruction  + rooms*heating + rooms*bedrooms*bathrooms + livingArea, data=saratoga_train)
+  
+  
+  lm_biggest = lm(price ~ lotSize + age +landValue + waterfront + newConstruction + fuel+ rooms*heating + rooms*bedrooms*bathrooms + livingArea, data=saratoga_train)
+  
+  
+  
+  # predict on this testing set
+  yhat_testsm = predict(lm_sm,saratoga_test)
+  yhat_testmed = predict(lm_med, saratoga_test)
+  yhat_testbig= predict(lm_big, saratoga_test)
+  yhat_testbiggest= predict(lm_biggest, saratoga_test)
+  c(rmse(saratoga_test$price,yhat_testsm),
+    rmse(saratoga_test$price, yhat_testmed),
+    rmse(saratoga_test$price, yhat_testbig),
+    rmse(saratoga_test$price, yhat_testbiggest))
+}
+
+rmse_vals
+colMeans(rmse_vals)
+coef(lm_big)
+# construct the training and test-set feature matrices, using variables from lm_big
+Xtrain = model.matrix(~ . - (price + sewer + pctCollege + fuel+ fireplaces+ centralAir) - 1, data=saratoga_train)
+Xtest = model.matrix(~ . - (price + sewer + pctCollege + fuel+ fireplaces+ centralAir) - 1, data=saratoga_test)
+
+# training and testing set responses
+ytrain = saratoga_train$price
+ytest = saratoga_test$price
+
+# now rescale:
+scale_train = apply(Xtrain, 2, sd)  # calculate std dev for each column
+Xtilde_train = scale(Xtrain, scale = scale_train)
+Xtilde_test = scale(Xtest, scale = scale_train)  # use the training set scales!
+
+K = 10
+
+# fit the model
+knn_model = knn.reg(Xtilde_train, Xtilde_test, ytrain, k=K)
+
+# calculate test-set performance
+rmse(ytest, knn_model$pred)
+
+k_grid = exp(seq(log(2), log(300), length=100)) %>% round %>% unique
+rmse_grid = foreach(K = k_grid, .combine='c') %do% {
+  knn_model = knn.reg(Xtilde_train, Xtilde_test, ytrain, k=K)
+  rmse(ytest, knn_model$pred)
+}
+plot(k_grid, rmse_grid, log='x')
+abline(h=rmse(ytest, yhat_testbig)) # linear model benchmark
+
+```
+
+Here, we are looking to model house prices using the Saratoga data set. In the base or medium model, we included all variables except for sewer, waterfront, landValue, and newConstruction. This model also does not include any interaction variables.
+
+```{r include =TRUE}
+lm_med = lm(price ~ . - sewer - waterfront - landValue - newConstruction, data=saratoga_train)
+```
+
+To build on this model and make it more accurate, I added interaction variables and previously excluded variables and removed some of the weaker variables such as fuel.
+I found this model to be much more accurate in predicting prices since the RMSE is much lower
+
+```{r include =TRUE}
+lm_big = lm(price ~ lotSize + age +landValue + waterfront + newConstruction 
+            + rooms*heating + rooms*bedrooms*bathrooms + livingArea, data=saratoga_train)
+```
+
+When using this particular model, I found that the largest drivers of price follows our general intuition. The top three variables are newConstruction, bedrooms, and bathrooms. This is to be expected as these variables generally mean a larger house, and thus a higher price.
+
+Now transitioning to the KNN model, I found that it performs similarly in terms of  RMSE at the optimal K value which hovers bewteen 7-10. On average the RMSE floats for this model isbewteen 55,000 and 58,000.
+```{r echo= FALSE}
+plot(k_grid, rmse_grid, log='x')
+```
+
+Overall, the models here are still relatively simple and both have simliar performance over many differesnt test splits.
+
+## Hospital Audit
+```{r message = FALSE, warning = FALSE, include = FALSE}
+brca = read.csv('../Data Files/brca.csv')
+
+n = nrow(brca)
+
+summary(brca$radiologist)
+rad13=subset(brca,radiologist=="radiologist13",-radiologist)
+rad34=subset(brca,radiologist=="radiologist34",-radiologist)
+rad66=subset(brca,radiologist=="radiologist66",-radiologist)
+rad89=subset(brca,radiologist=="radiologist89",-radiologist)
+rad95=subset(brca,radiologist=="radiologist95",-radiologist)
+
+# fitting regression to each doctor's data
+logit_rad13 =glm(recall~., data=rad13)
+logit_rad34 =glm(recall~., data=rad34)
+logit_rad66 =glm(recall~., data=rad66)
+logit_rad89 =glm(recall~., data=rad89)
+logit_rad95 =glm(recall~., data=rad95)
+
+
+glm_recall = do(100)*{
+  
+  # sampling for test data
+  n_test = round(0.8*n)  # round to nearest integer
+  test_cases = sample.int(n, n_test, replace=FALSE)
+  brca_test = brca[test_cases,]
+  
+  # predict on this testing set
+  phat_13 = predict(logit_rad13,brca_test, type ='response')
+  phat_34 = predict(logit_rad34,brca_test, type ='response')
+  phat_66 = predict(logit_rad66,brca_test, type ='response')
+  phat_89 = predict(logit_rad89,brca_test, type ='response')
+  phat_95 = predict(logit_rad95,brca_test, type ='response')
+  
+  
+  c(mean(phat_13),
+    mean(phat_34),
+    mean(phat_66),
+    mean(phat_89),
+    mean(phat_95))
+}
+colnames(glm_recall)[1] <- "Radiologist13"
+colnames(glm_recall)[2] <- "Radiologist34"
+colnames(glm_recall)[3] <- "Radiologist66"
+colnames(glm_recall)[4] <- "Radiologist89"
+colnames(glm_recall)[5] <- "Radiologist95"
+colMeans(glm_recall) 
+
+
+
+n_train = round(0.8*n)  # round to nearest integer
+n_test = n - n_train
+train_cases = sample.int(n, n_train, replace=FALSE)
+test_cases = setdiff(1:n, train_cases)
+brca_train = brca[train_cases,]
+brca_test = brca[test_cases,]
+
+cancer_reg = lm(cancer ~. -recall -radiologist , data=brca_train)
+cancer_coef = summary(cancer_reg)$coefficients
+cancer_coef = as.data.frame((cancer_coef))
+cancer_estimates = dplyr::select(cancer_coef,Estimate)
+nrow(cancer_coef)
+
+
+yhat_A = do(100)*{
+  n_train = round(0.8*n) 
+  n_test = n - n_train
+  train_cases = sample.int(n, n_train, replace=FALSE)
+  test_cases = setdiff(1:n, train_cases)
+  brca_train = brca[train_cases,]
+  brca_test = brca[test_cases,]
+  
+  cancer_reg = lm(cancer ~ recall, data=brca_train)
+  yhat = predict(cancer_reg,brca_test)
+  
+  c(rmse(brca_test$cancer,yhat)) 
+}
+colMeans(yhat_A)
+
+yhat_B = do(100)*{
+  n_train = round(0.8*n) 
+  n_test = n - n_train
+  train_cases = sample.int(n, n_train, replace=FALSE)
+  test_cases = setdiff(1:n, train_cases)
+  brca_train = brca[train_cases,]
+  brca_test = brca[test_cases,]
+  
+  cancer_reg = lm(cancer ~. -radiologist - density  , data=brca_train)
+ 
+  yhat = predict(cancer_reg,brca_test)
+  
+  c(rmse(brca_test$cancer,yhat)) 
+}
+
+colMeans(yhat_B)
+```
+Question 1 : Are some radiologists more clinically conservative than others in recalling patients, holding patient risk factors equal?
+
+To explore this question, I first subsetted the data by radiologist. I did this to train the each regression model to the particular radiologist. Next we then use a test split of the entire data set to predict the probabilities of recalls. AFter runnning the a series of tests splits here are the recall probabilities for each radiologist:
+```{r echo= FALSE}
+colMeans(glm_recall) 
+```
+Here we define the radiologist with higher probability to be more conservative, so from our regression analysis,Radiologist85 is the most conservative of the five doctors.
+
+Question 2 : when the radiologists at this hospital interpret a mammogram to make a decision on whether to recall the patient, does the data suggest that they should be weighing some clinical risk factors more heavily than they currently are?
+
+We first run two models of regression. Model A is simply regressing cancer outcome on the doctor's recall decision. Model B adds the varying clinical risk factors such as age and history. A and B follow, respectively :
+```{r include =TRUE}
+cancer_reg = lm(cancer ~ recall, data=brca_train)
+cancer_reg = lm(cancer ~. -radiologist, data=brca_train)
+```
+Using test splits and finding the average RMSE, I found the data does not indicate that Model B performs better. This seems counter intuitive, as a model that includes risk factor would seem to be more accurate in predicting cancer. The largest factors from Model B were age, and density.
+
+## Predicting when articles go viral
+```{r message=FALSE, warning= FALSE, include= FALSE}
+library(dplyr)
+library(tidyverse)
+library(foreach)
+library(FNN)
+
+
+rmse = function(y, ypred) {
+  sqrt(mean(data.matrix((y-ypred)^2)))
+}
+online_news = read.csv('../Data Files/online_news.csv')
+online_news$viral= ifelse(online_news$shares > 1400, 1, 0)
+
+
+
+n = nrow(online_news)
+n_train = round(0.8*n)  # round to nearest integer
+n_test = n - n_train
+train_cases = sample.int(n, n_train, replace=FALSE)
+test_cases = setdiff(1:n, train_cases)
+online_train = online_news[train_cases,]
+online_test = online_news[test_cases,]
+
+lm_rates = do(100)*{
+  
+  # re-split into train and test cases
+  n_train = round(0.8*n)  # round to nearest integer
+  n_test = n - n_train
+  train_cases = sample.int(n, n_train, replace=FALSE)
+  test_cases = setdiff(1:n, train_cases)
+  online_train = online_news[train_cases,]
+  online_test = online_news[test_cases,]
+  
+  # fit to this training set
+  share_reg= lm(shares ~ n_tokens_title*num_hrefs*n_tokens_content*num_self_hrefs + num_imgs*num_videos 
+                           + title_sentiment_polarity*avg_positive_polarity*avg_negative_polarity
+                             + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world,data= online_train)
+  # predict on this testing set
+  yhat_share = predict(share_reg,online_test)
+  yhat_share_df <- data.frame("viral" = ifelse(yhat_share>1400,1,0))
+  confusion_share_lm = table(y = online_test$viral, yhat = yhat_share_df$viral)
+  
+  err_rate= 1-sum(diag(confusion_share_lm))/length(test_cases)
+  fp_rate = confusion_share_lm[1,2]/(sum(confusion_share_lm[1,]))
+  tp_rate = confusion_share_lm[2,2]/(sum(confusion_share_lm[2,]))
+  
+  c(err_rate,
+    fp_rate,
+    tp_rate)
+}
+colnames(lm_rates)[1] <- "Error Rate"
+colnames(lm_rates)[2] <- "FP Rate"
+colnames(lm_rates)[3] <- "TP RAte"
+
+colMeans(lm_rates)
+lm_rates
+
+
+glm_rates = do(100)*{
+  
+  # re-split into train and test cases
+  n_train = round(0.8*n)  # round to nearest integer
+  n_test = n - n_train
+  train_cases = sample.int(n, n_train, replace=FALSE)
+  test_cases = setdiff(1:n, train_cases)
+  online_train = online_news[train_cases,]
+  online_test = online_news[test_cases,]
+  
+  # fit to this training set
+  share_logit= glm(viral ~ shares+ n_tokens_title*num_hrefs*n_tokens_content*num_self_hrefs + num_imgs*num_videos 
+                   + title_sentiment_polarity*avg_positive_polarity*avg_negative_polarity +
+                     + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world,data= online_train)
+  
+  
+  phat_test = predict(share_logit,online_test, type ='response')
+  yhat_test =  ifelse(phat_test > 0.45, 1, 0)
+  confusion_share_logit = table(y = online_test$viral, yhat = yhat_test)
+  confusion_share_logit
+  
+  
+  err_rate= 1-sum(diag(confusion_share_logit))/length(test_cases)
+  fp_rate = confusion_share_logit[1,2]/(sum(confusion_share_logit[1,]))
+  tp_rate = confusion_share_logit[2,2]/(sum(confusion_share_logit[2,]))
+  
+  c(err_rate,
+    fp_rate,
+    tp_rate)
+}
+colnames(glm_rates)[1] <- "Error Rate"
+colnames(glm_rates)[2] <- "FP Rate"
+colnames(glm_rates)[3] <- "TP RAte"
+colMeans(glm_rates)
+lm_rates
+
+lm_rates1 = do(100)*{
+  
+  # re-split into train and test cases
+  n_train = round(0.8*n)  # round to nearest integer
+  n_test = n - n_train
+  train_cases = sample.int(n, n_train, replace=FALSE)
+  test_cases = setdiff(1:n, train_cases)
+  online_train = online_news[train_cases,]
+  online_test = online_news[test_cases,]
+  
+  # fit to this training set
+  share_reg= lm(shares ~ viral + n_tokens_title*num_hrefs*n_tokens_content*num_self_hrefs + num_imgs*num_videos 
+                + title_sentiment_polarity*avg_positive_polarity*avg_negative_polarity
+                  + data_channel_is_lifestyle + data_channel_is_entertainment + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world,data= online_train)
+  # predict on this testing set
+  yhat_share = predict(share_reg,online_test)
+  yhat_share_df <- data.frame("viral" = ifelse(yhat_share>1400,1,0))
+  confusion_share_lm = table(y = online_test$viral, yhat = yhat_share_df$viral)
+  
+  err_rate= 1-sum(diag(confusion_share_lm))/length(test_cases)
+  fp_rate = confusion_share_lm[1,2]/(sum(confusion_share_lm[1,]))
+  tp_rate = confusion_share_lm[2,2]/(sum(confusion_share_lm[2,]))
+  
+  c(err_rate,
+    fp_rate,
+    tp_rate)
+}
+
+colMeans(lm_rates1)
+```
+
+I first try to regress the data, and then threshold the predictive sharses results into viral or not. Here is the corresponding model.
+```{r include = TRUE}
+ share_reg= lm(shares ~ n_tokens_title*num_hrefs*n_tokens_content*num_self_hrefs + num_imgs*num_videos 
+                           + title_sentiment_polarity*avg_positive_polarity*avg_negative_polarity + data_channel_is_lifestyle + data_channel_is_entertainment 
+                            + data_channel_is_bus + data_channel_is_socmed + data_channel_is_tech + data_channel_is_world,data= online_train)
+```
+After running over many test splits, I found the following confusion matrix and corresponding rates.
+```{r echo=FALSE}
+confusion_share_lm
+colMeans(lm_rates)
+```
+
+Now, I try the opposite order. We first threshold the articles into viral or not, and then run a predictive model. I used a logit model while holding all the independent variables the same.
+The results of the logit model:
+```{r echo=FALSE}
+confusion_share_logit
+colMeans(glm_rates)
+```
+
+Clearly, we see that the original linear model performs abysmally. error rate is quite high while FP and TP are in the 90% range. This model is absolutely useless.
+However, when thresholding the model first, I found that the logit model performs quite reasonably. TP and FP fluctuate depending on your classification level, but the error rate remains relatively low. Thresholding first likely yields better resutls in this case, as we guide the models to look for"viral" articles.
