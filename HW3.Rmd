@@ -1,0 +1,213 @@
+---
+title: "HW3"
+author: "Nam Tran"
+date: "April 8, 2019"
+output:
+  md_document: default
+ 
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(mosaic)
+library(FNN)
+library(foreach)
+library(dplyr)
+
+
+greenbuildings = read.csv('../Data Files/greenbuildings.csv')
+greenbuildings <- mutate(greenbuildings,age.quantile = ntile(age,5))
+greenbuildings <- mutate(greenbuildings,log_rent = log(Rent))
+
+buildings_a=subset(greenbuildings,class_a==1)
+buildings_b=subset(greenbuildings,class_b==1)
+buildings_c=subset(greenbuildings,class_a==0 & class_b==0)
+
+buildings_1=subset(greenbuildings, age.quantile == 1)
+buildings_2=subset(greenbuildings, age.quantile == 2)
+buildings_3=subset(greenbuildings, age.quantile == 3)
+buildings_4=subset(greenbuildings, age.quantile == 4)
+buildings_5=subset(greenbuildings, age.quantile == 5)
+
+
+
+log_forward <- function(x){
+  lm_1 = lm(log_rent~1,data= x)
+  step(lm_1, direction ="forward", scope=~((cluster*cluster_rent + size + leasing_rate + stories + age + renovated + class_a + class_b + green_rating + net + amenities + Gas_Costs + Electricity_Costs +cd_total_07*hd_total07*total_dd_07 + Precipitation)))
+}
+
+log_backward <-function(x){
+  lm_all = lm(log_rent~((cluster*cluster_rent + size + leasing_rate + stories + age + renovated + class_a + class_b + green_rating + net + amenities + Gas_Costs + Electricity_Costs + cd_total_07*hd_total07*total_dd_07 + Precipitation)),data=x)
+  step(lm_all, direction="backward")
+}
+
+log_step <- function(x){
+  lm_1 = lm(log_rent~1,data= x)
+  step(lm_1, direction ="both", scope=~((cluster*cluster_rent + size + leasing_rate + stories + age + renovated + class_a + class_b + green_rating + net + amenities + Gas_Costs + Electricity_Costs + cd_total_07*hd_total07*total_dd_07 + Precipitation)))
+}
+
+lm_forward=log_forward(greenbuildings)
+lm_backward =log_backward(greenbuildings)
+lm_step = log_step(greenbuildings)
+
+
+coef_green <- c(coef((lm_forward))["green_rating"],
+                coef((lm_backward))["green_rating"],
+                coef((lm_step))["green_rating"])
+
+model <- c("Forward Selection", "Backward Selection", "Both")
+
+models_coefficients <- data.frame(
+  Model = model,
+  green_rating_estimate = coef_green
+)
+
+models_coefficients 
+
+lm_for_a = log_forward(buildings_a)
+lm_for_b = log_forward(buildings_b)
+lm_for_c = log_forward(buildings_c)
+
+lm_back_a = log_backward(buildings_a)
+lm_back_b= log_backward(buildings_b)
+lm_back_c = log_backward(buildings_c)
+
+lm_step_a = log_step(buildings_a)
+lm_step_b = log_step(buildings_b)
+lm_step_c = log_step(buildings_c)
+
+a_buildings <- c(coef(lm_for_a)["green_rating"],
+                 coef(lm_back_a)["green_rating"],
+                 coef(lm_step_a)["green_rating"])
+
+b_buildings <- c(coef(lm_for_b)["green_rating"],
+                 coef(lm_back_b)["green_rating"],
+                 coef(lm_step_b)["green_rating"])
+c_buildings <- c(coef(lm_for_c)["green_rating"],
+                 coef(lm_back_c)["green_rating"],
+                 coef(lm_step_c)["green_rating"])
+class_coefficients <- data.frame(
+  Model = model,
+  green_rating_a = a_buildings,
+  green_rating_b = b_buildings,
+  green_rating_c = c_buildings
+)
+
+class_coefficients
+
+lm_for_1 = log_forward(buildings_1)
+lm_for_2 = log_forward(buildings_2)
+lm_for_3 = log_forward(buildings_3)
+lm_for_4 = log_forward(buildings_4)
+lm_for_5 = log_forward(buildings_5)
+
+
+lm_back_1 = log_backward(buildings_1)
+lm_back_2 = log_backward(buildings_2)
+lm_back_3 = log_backward(buildings_3)
+lm_back_4 = log_backward(buildings_4)
+lm_back_5 = log_backward(buildings_5)
+
+lm_step_1= log_step(buildings_1)
+lm_step_2= log_step(buildings_2)
+lm_step_3= log_step(buildings_3)
+lm_step_4= log_step(buildings_4)
+lm_step_5= log_step(buildings_5)
+
+
+
+building1 <- c(coef((lm_for_1))["green_rating"],
+               coef((lm_back_1))["green_rating"],
+               coef((lm_step_1))["green_rating"])
+
+building2 <- c(coef((lm_for_2))["green_rating"],
+               coef((lm_back_2))["green_rating"],
+               coef((lm_step_2))["green_rating"])
+
+building3 <- c(coef((lm_for_3))["green_rating"],
+               coef((lm_back_3))["green_rating"],
+               coef((lm_step_3))["green_rating"])
+
+building4 <- c(coef((lm_for_4))["green_rating"],
+               coef((lm_back_4))["green_rating"],
+               coef((lm_step_4))["green_rating"])
+
+building5 <- c(coef((lm_for_5))["green_rating"],
+               coef((lm_back_5))["green_rating"],
+               coef((lm_step_5))["green_rating"])
+
+
+
+age_coefficients <- data.frame(
+  Model = model,
+  green_rating_1 = building1,
+  green_rating_2 = building2,
+  green_rating_3 = building3,
+  green_rating_4 = building4,
+  green_rating_5 = building5
+)
+
+age_coefficients
+
+median_age <- data.frame(
+  Age_quantile = c(1,2,3,4,5),
+  Median = c(median(buildings_1$age),
+             median(buildings_2$age),
+             median(buildings_3$age),
+             median(buildings_4$age),
+             median(buildings_5$age))
+)
+median_age
+
+
+```
+
+## Green Buildings Revisited
+In this report, we revisit the greenbuildings data we previously used to practice data visualization. However, with our new toolkits, we will try to:
+
+* Build the best predicitve model we can for average rent
+
+* Quantify the green rating coefficient
+
+* See if this coefficient is  different for various types of buildings
+
+Next we begin by selecting our models. I have elected to use stepwise regressions to hopefully create a more accurate model. I utilize "Forward Selection", "Backward Selection", and "Stepwise/Both." Additionally, I opted for a log-linear model to capture the effects of green ratings on rent in terms of percentages. I find this to be more intuitive and easy both understand and visualize.
+
+### Results
+After running these different types of regressions over the data, we find a couple of interesting findings. We find that the forward and stepwise selection end up with the same model, and secondly, we see that the green rating coefficient is positive across the models.
+
+```{r echo=TRUE}
+models_coefficients 
+
+```
+
+Based on these regressions on the entire dataset, we summise that a green rating certification will yield almost a 3% increase in average rent, holding all else fixed.
+
+Next, we look try to see if this green rating effect will differ across different types of buildings. I will try to find the effects for different buildings class/quality as well as different ages. To achieve the former, I use the pre-defined building classes in the data set. For the latter, I subsetted the data into different age quantiles. I then ran the three different types of stepwise regression for each data subset, and here are the results.
+
+```{r echo=TRUE}
+class_coefficients 
+
+```
+
+For the class coefficients, We first note that green ratings were not used in the final regressions for buildings with class C. This can be attributed to class type, as class c buildings are at the low-end and least desirable. Thus, they are unlikely to qualify for green ratings. Secondly, within the classes, we see relatively large coeffficients for buildings of class b. These buildings are deemed reasonable quality and only a notch down for the high-quality properties of class a. Perhaps green ratings are one of the easier ways for a reasonable quality building to improve their overall aesthetics without massive overhauls. Now, we will look at the different effects for different aged buildings.
+
+```{r echo=TRUE}
+median_age
+age_coefficients
+```
+
+When we look at the age coefficients, we see a larger effect in the young buildings or quantile 1 which has a median age of 14. Green rating coefficients are still siginificant, although just slightly smaller in magnitude for the second quantile which has median age of 24. And for the last three quantiles we see that the green ratings wre insignificant and thus not included in the final model. This is expected as antiquated buildings would likely be unable to attain green certifications.
+
+## What causes what?
+1. This would largely be ineffective as you would simply jsut be finding correlation between the two statistics, and as we all know correlation is not causation. Additionally, there are many exogenous variables being ommitted that would affect the regression from city to city. Whether they arestate laws or cultural phenomenas, we would be missing a large portion of explanatory powers.
+
+2. Initially, the UPenn researchers were searching for ways to have an increased police presence without it being related to street crimes. They finally were able to isolate this effect by utilizing the terror alert system in Washington D.C. On "Orange Alert Days"" of the terror alert system, there would be extra police out in the city, largely to prevent terrorism. This enables them to ask," On these days, what happens to street crimes with the increased police presence unrelated to street crimes?." The results say that there are decrease in street crimes such as murder, robbery, assault etc.
+
+3. One of the theories weakening the prior result was whether the civilian population were just not as active on these days. To look at this phenomena, the researchers controlled for Metro ridership to capture whether tourism in the city was lower on the "Orange Alert Days." They found that there was no effect on tourism from the terror alerts.
+
+4. The model here is using interation effects of high alert days and districts in Washington D.C. The researchers are looking whether the decrease in crime is equal across the city or concentrated in a particular district. In this case, they found that the decreases were concentrated at in District 1 which contains the National Mall.
+
+
