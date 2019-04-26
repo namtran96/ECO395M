@@ -1,0 +1,188 @@
+---
+title: "HW4"
+author: "Nam Tran"
+date: "April 26, 2019"
+output: 
+  md_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ISLR)
+library(tidyverse)
+library(ggplot2)
+library(gridExtra)
+
+wine = read.csv('../Data Files/wine.csv')
+wine.labs = colnames(wine)
+wine.data = as.matrix(wine[,1:11])
+wine.labs = colnames(wine.data)
+wine.qual = as.matrix(wine[,12])
+wine.color = as.matrix(wine[,13])
+dim(wine.data) 
+
+
+pr_wine = prcomp(wine.data, scale=TRUE)
+plot(pr_wine,type="lines")
+summary(pr_wine)
+biplot(pr_wine)
+
+pr_wine$x
+str(pr_wine)
+wine2 <-cbind(wine,pr_wine$x[,1:3])
+
+
+plot12 <- ggplot(data = wine2, aes(PC1, PC2,col = color, fill = color))+
+  stat_ellipse(geom = "polygon", col= "black", alpha =.1) +
+  geom_point(shape =20.5) +
+  geom_vline(xintercept = -1, linetype= "dashed") +
+  labs(
+    title = "Wine Color for PC1 and PC2"
+  ) +
+  theme_dark()
+
+plot12 <- plot12 + scale_color_manual(values=c("red3", "peachpuff"))+ scale_fill_manual(values=c("red3", "peachpuff"))
+
+plot13 <- ggplot(data = wine2, aes(PC1, PC3,col = color, fill = color))+
+  stat_ellipse(geom = "polygon", col= "black", alpha =.1) +
+  geom_point(shape =20.5) +
+  geom_vline(xintercept = -1, linetype= "dashed") +
+  labs(
+    title = "Wine Color for PC1 and PC3"
+  ) +
+  theme_dark()
+
+plot13 <- plot13 + scale_color_manual(values=c("red3", "peachpuff"))+ scale_fill_manual(values=c("red3", "peachpuff"))
+
+plot23 <- ggplot(data = wine2, aes(PC2, PC3,col = color, fill = color))+
+  stat_ellipse(geom = "polygon", col= "black", alpha =.1) +
+  geom_point(shape =20.5) +
+  labs(
+    title = "Wine Color for PC2 and PC3"
+  ) +
+  theme_dark()
+
+plot23 <- plot23 + scale_color_manual(values=c("red3", "peachpuff"))+ scale_fill_manual(values=c("red3", "peachpuff"))
+
+
+plotq12 <- ggplot(data = wine2, aes(PC1, PC2,col = quality, fill = quality))+
+  geom_point(shape =20.5) +
+  theme_dark()
+grid.arrange(plot12,plot13,plot23, ncol=2, nrow=2)
+
+
+wine2= wine2 %>%
+  mutate(quality.index=
+           ifelse(between(wine2$quality,3,4), "low", 
+                  ifelse(between(wine2$quality,5,6), "medium" ,
+                         ifelse(between(wine2$quality,7,9),"high", 0)
+                         )
+                  )
+           )
+
+plotq12 <- ggplot(data = wine2, aes(PC1, PC2,col = quality.index, fill = quality.index))+
+  geom_point(shape =20) +
+  labs(
+    title = "Wine quality for PC1 and PC2"
+  ) +
+  theme_dark()
+
+plotq12
+
+plotq13 <- ggplot(data = wine2, aes(PC1, PC3,col = quality.index, fill = quality.index))+
+  geom_point(shape =20) +
+  labs(
+    title = "Wine quality for PC1 and PC3"
+  ) +
+  theme_dark()
+
+plotq13
+
+plotq23 <- ggplot(data = wine2, aes(PC2, PC3,col = quality.index, fill = quality.index))+
+  geom_point(shape =20) +
+  labs(
+    title = "Wine quality for PC2 and PC3"
+  ) +
+  theme_dark()
+
+plotq23
+
+
+wine_scale = scale(wine.data,center=TRUE, scale=TRUE)
+cluster <- kmeans(wine_scale, centers=2, nstart=50)
+cluster$centers
+cluster$cluster
+
+plotcl <- ggplot(data = wine, aes(fixed.acidity, volatile.acidity ,col = factor(cluster$cluster)))+
+  geom_point(shape =21) +
+  labs(
+    title = "Wine Color Clusters of acidity measures "
+  )
+
+plotcl <- plotcl+scale_colour_discrete(name="Wine Color",
+                             labels=c("Red", "White"))
+
+
+plotcl1 <- ggplot(data = wine, aes(citric.acid, fixed.acidity ,col = factor(cluster$cluster)))+
+  geom_point(shape =21) +
+  labs(
+    title = "Wine Color Clusters of citric acid and fixed acidity"
+  )
+plotcl1 <- plotcl1 + scale_colour_discrete(name="Wine Color",
+                                labels=c("Red", "White"))
+
+plotcl2 <- ggplot(data = wine, aes(citric.acid, volatile.acidity ,col = factor(cluster$cluster)))+
+  geom_point(shape =21) +
+  labs(
+    title = "Wine Color Clusters of citric acid and volatile acidity"
+  )
+plotcl2 <- plotcl2 + scale_colour_discrete(name="Wine Color",
+                                           labels=c("Red", "White"))
+
+
+
+
+```
+
+## Part 1
+
+### PCA
+
+I first look to run Principal Component Analysis (PCA) on the data. The goal of PCA here is to find low-dimensional summaries that will allow us to further understand the dataset.
+
+Here I look to visualize the first 3 PCA components and attempt to see whether there are groupings in wine color or wine quality.
+
+```{r echo=FALSE}
+grid.arrange(plot12,plot13, ncol=2, nrow=1)
+```
+
+For principal components 1 and 2, we can see that there is a clear grouping for wine color around the intercept -1 of PC1, and the graph of PC1 and PC3 follows the same trend. However when looking below at PC2 and PC3, there is no definite groupings in terms of wine color.
+
+```{r echo=FALSE}
+plot23
+```
+
+Now we look to see if there are any groupings for wine quality. This will likely be very diffficult to  dp  since  wine quality ranges from 3-9, so I decided to index the quality into three groups: low, medium, and high. Low being 3-4, medium being 5-6, and high being 7-9. There are still no clear distinct groupings, but there looks to be a larger number of medium and high wines on the positive end of PC1.
+
+### Clustering
+
+In this part, we look to  use clustering to reduce the dimensionality of the dataset. We begin by scaling and centering our wine dastaset, and then running the k-means with 2 clusters.
+
+```{r include =TRUE}
+cluster <- kmeans(wine_scale, centers=2, nstart=50)
+```
+
+We then use the two clusters created to find the groupings of wine color in graphs of various variables. First lets look at the different measures of acidity.
+
+```{r echo=FALSE}
+plotcl
+```
+
+Similarly, we can look at citric acid against both these different measures.
+
+```{r echo=FALSE}
+grid.arrange(plotcl1,plotcl2, ncol=2, nrow=1)
+```
+
+
+Overall, both of these dimension reducing methods give a good way of dividing by wine color which is a binary categorization. In terms of finding groupings by wine quality, it is much harder to do.
