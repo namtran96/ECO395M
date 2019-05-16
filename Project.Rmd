@@ -151,7 +151,43 @@ gg2 <- ggplot(X3PAG, aes(x=X2016, xend=X2017, y=Tm)) +
 
 gg2
 
+N= nrow(clplayerdata)
 
+train_frac=.8
+N_train= floor(train_frac*N)
+N_test =N-N_train
+train_ind=sample.int(N,N_train, replace = FALSE) %>% sort
+player_train = clplayerdata[train_ind,]
+player_test =clplayerdata[-train_ind,]
+
+big.tree = rpart(X3PA ~.,method="anova",data=player_train,control=rpart.control(minsplot=5, cp=1e-6,xval=10))
+
+nbig = length(unique(big.tree$where))
+
+plotcp(big.tree)
+
+head(big.tree$cptable)
+
+err_1se = big.tree$cptable[,'xerror'] + big.tree$cptable[,'xstd']
+err_thresh = min(err_1se)
+err_thresh
+big.tree$cptable[,'xerror'] - err_thresh
+which(big.tree$cptable[,'xerror']- err_thresh <0) %>% head
+
+bestcp= big.tree$cptable[166,'CP']
+bestcp
+
+cvtree = prune(big.tree,cp=bestcp)
+plot(cvtree)
+length(unique(cvtree$where))
+plot(player_train$Year,predict(cvtree))
+plot(player_train$X3PA,predict(cvtree))
+
+
+yhat_test_tree = predict(cvtree,player_test)
+
+rmse = mean((yhat_test_tree - player_test$X3PA)^2) %>% sqrt
+rmse
 ```
 
 
