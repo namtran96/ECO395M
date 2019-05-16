@@ -18,14 +18,6 @@ library(gbm)
 
 
 playerdata = read.csv('../Data Files/Seasons_Stats.csv')
-playerbio = read.csv('../Data Files/player_data.csv')
-names(playerbio)[1]<-"Player"
-
-players<- left_join(playerdata, playerbio)
-birthyear <- str_split_fixed(players$birth_date, ", ", 2)
-players$birthyear <- birthyear[,2]
-players$birth_date <- NULL
-
 
 playerdata  <- subset(playerdata, Year>= 1980)
 
