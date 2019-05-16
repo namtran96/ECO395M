@@ -93,16 +93,18 @@ likely due to efforts by the NBA to increase scoring by decreasing the
 3-point distance. In the following year, it was returned to its original
 distance, and the 3-point trend continues to climb up.
 
-![](Project_files/figure-markdown_strict/unnamed-chunk-1-1.png) Next we
-look turn to look at the most recent year in Figure Two. When we look at
-the highlighted names towards the top of 3-point FG attempts, we see
-that four out of five of these players are on the **same** team. What
-also sticks out is a player like Demar Derozan, a shooting guard,
+![](Project_files/figure-markdown_strict/unnamed-chunk-1-1.png)
+
+Next we look turn to look at the most recent year in Figure Two. When we
+look at the highlighted names towards the top of 3-point FG attempts, we
+see that four out of five of these players are on the **same** team.
+What also sticks out is a player like Demar Derozan, a shooting guard,
 leading this group in 2-point FG attempts. In this day and age, it'd
 almost be absurd to take this many two's at his position.
 
-![](Project_files/figure-markdown_strict/unnamed-chunk-2-1.png) Moving
-on to the predictive model portion, after generating a big tree, and
-pruning it down. The model RMSE is at an exceptionally low 47.73. I'm
-not too sure why it's so low, perhaps the additions of PCA really help
-drive the tree and it's predictive powers.
+![](Project_files/figure-markdown_strict/unnamed-chunk-2-1.png)
+
+Moving on to the predictive model portion, after generating a big tree,
+and pruning it down. The model RMSE is at an exceptionally low 47.73.
+I'm not too sure why it's so low, perhaps the additions of PCA really
+help drive the tree and it's predictive powers.

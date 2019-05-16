@@ -83,24 +83,7 @@ Min3PA2017 = Min3PA2017  %>%
                   )
            )
   )
-Min3PA2017$X3PS <- factor(Min3PA2017$X3PS, levels = c("average", "good", "excellent"))
 
-Min3PA2017 <- subset(clplayerdata2, X3PA >= 100 & Year == 1980)
-Min3PA2017 = Min3PA2017  %>%
-  mutate(X3PS =
-           ifelse(Min3PA2017$X3P.<=.1, "terrible", 
-                  ifelse(Min3PA2017$X3P.<=.2 & Min3PA2017$X3P. >= .1,"poor" , 
-                         ifelse(Min3PA2017$X3P.<=.3 & Min3PA2017$X3P. >= .2,"average",
-                                ifelse(Min3PA2017$X3P.<=.4 & Min3PA2017$X3P. >= .3,"good","excellent")
-                         )
-                  )
-           )
-  )
-Min3PA2017$X3PS <- factor(Min3PA2017$X3PS, levels = c("average", "good", "excellent"))
-
-
-
-X3Pa17 = subset(clplayerdata2, Tm == 'HOU' & Year ==2017 )
 
 # Plot 1
 Total3PA<- ggplot(X3PA.year, aes(x=Year, y=sum)) + 
@@ -203,10 +186,12 @@ The basic trend noted earlier that 3-point shot volume has increased in the past
 ```{r echo= FALSE}
 Total3PA
 ```
+
 Next we look turn to look at the most recent year in Figure Two. When we look at the highlighted names towards the top of 3-point FG attempts, we see that four out of five of these players are on the **same** team. What also sticks out is a player like Demar Derozan, a shooting guard, leading this group in 2-point FG attempts. In this day and age, it'd almost be absurd to take this many two's at his position. 
 
 ```{r echo= FALSE}
 gg1
 ```
+
 Moving on to the predictive model portion, after generating a big tree, and pruning it down. The model RMSE is at an exceptionally low 47.73. I'm not too sure why it's so low, perhaps the additions of PCA really help drive the tree and it's predictive powers.
 
