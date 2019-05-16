@@ -232,13 +232,13 @@ gg1
 
 Moving on to the predictive model portion, after generating a big tree, and pruning it down. The model RMSE is at an exceptionally low 47.73. I'm not too sure why it's so low, perhaps the additions of PCA really help drive the tree and it's predictive powers. The most notable figure derived from the tree is  Figure 3. Here we see a defintie increase in predicted 3-point attempts over the past decades. This trend is likely to continue for the foreseeable future.
 
-```{r}
+```{r echo= FALSE}
 plot(player_train$Year,predict(cvtree), main = "Figure 3", xlab ='Years')
 ```
 
 Next we have the predicted values plotted against the actual training set value. I use this to see the validity and linearity of the model. This linearity of the plot is generally a good sign in terms of predicitve value as one would wnat their predicted values to align with the training data.
 
-```{r}
+```{r echo= FALSE}
 plot(player_train$X3PA,predict(cvtree), main = "Figure 4", xlab ='3-Point FG Attempts')
 ```
 

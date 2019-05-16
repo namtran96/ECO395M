@@ -112,8 +112,6 @@ derived from the tree is Figure 3. Here we see a defintie increase in
 predicted 3-point attempts over the past decades. This trend is likely
 to continue for the foreseeable future.
 
-    plot(player_train$Year,predict(cvtree), main = "Figure 3", xlab ='Years')
-
 ![](Project_files/figure-markdown_strict/unnamed-chunk-3-1.png)
 
 Next we have the predicted values plotted against the actual training
@@ -121,7 +119,5 @@ set value. I use this to see the validity and linearity of the model.
 This linearity of the plot is generally a good sign in terms of
 predicitve value as one would wnat their predicted values to align with
 the training data.
-
-    plot(player_train$X3PA,predict(cvtree), main = "Figure 4", xlab ='3-Point FG Attempts')
 
 ![](Project_files/figure-markdown_strict/unnamed-chunk-4-1.png)
