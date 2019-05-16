@@ -2,7 +2,17 @@ Abstract
 ========
 
 In this report, I summarize the overall trends of the 3-point attempts
-starting from 1980 to 2017.
+starting from 1980 to 2017. With the 3-point shot being introduced in
+1979, we have seen an increase in volume from 1980 to 2017 at astounding
+rates, even with the multiple expansion years. In the most recent season
+of the data set ,2017, we see four out of the five prolific shooters,
+being on two of the winningest teams in the league, GSW being first and
+HOU placing third. From our predicitve model, I got an astoundingly low
+RMSE at **47.73**. The model predicts linearly with the training data
+set, which is a positive sign for its overall predicitive powers. Among
+the predictions, the 3-point attempts can be seen rising steadily over
+the years, and this trend will likely continue with the likes of James
+Harden, Klay Thompson, and Steph Curry at the forefront.
 
 Introduction
 ============
@@ -39,10 +49,60 @@ basketball-reference.com. The data includes the typical box-score stats
 such as points, assists, and rebounds to advanced features such as PER
 and true shooting percentages.
 
-For my purposes, I begin by subsetting the data by years after 1979
-where the NBA introduced the 3-point line. From their I look into other
-correlation and trends that may be interesting. Herem I start with teams
-and years and then move towards basketball metrics. \# Results
+To examine the trends using data visualizations, I began by mutating the
+data and finding summary variables typically by year or team. I wanted
+to look at the overall trend from the 80's until 2017 as well as 2017 by
+itself. It's important to note how the league first started with the
+3-point shot, and how players are choosing their shots in the modern
+era.
 
-Conclusion
-==========
+For my prediction model, I begin by subsetting the data by years after
+1979 where the NBA introduced the 3-point line. From their I look into
+other correlation and trends that may be interesting. Here, I start with
+teams and years and then move towards basketball metrics. The main
+statistic that I am looking at is X3PA or 3-point attempts. I wanted a
+baseline of some of the more "proflific" shooters, so i subsetted the
+data once again by X3PA &gt;= 100. This removes a majority of bench or
+role players that may put up only a few shots a season. After subsetting
+twice, I end up with 4432 observations.
+
+I wanted to use something we recently learned to be quite powerful,
+**trees**. For this purpose, I removed all of the advance basketball
+metrics like PER amd TS%. I believe while these are interesting to look
+at they would be confounding in this model.I aslo looked to remove
+3-points made, 2-points made, and free throws made, while keeping
+attempts and percentages for each of these. I then use Principle
+Components Analysis (PCA) to generate five additional variables that
+will help the tree find the proper nodes. With these componenets, I have
+a total of 22 variables to run the tree on.
+
+Now for our cleaned dataset, I will run the tree, find the best
+complexity parameter, and prune the tree using this complexity
+parameter.
+
+Results and Analysis
+====================
+
+The basic trend noted earlier that 3-point shot volume has increased in
+the past 3 decades is clearly seen in Figure 1. From the introduction of
+the shot to 2017, volume has increased by nearly 12 times. It is to be
+noted that, in 1980 there were only 23 teams, compared to the modern era
+of 30 teams. Despite the difference in number of teams, this pace is
+still astounding. the largest. The three season spike in the 90's was
+likely due to efforts by the NBA to increase scoring by decreasing the
+3-point distance. In the following year, it was returned to its original
+distance, and the 3-point trend continues to climb up.
+
+![](Project_files/figure-markdown_strict/unnamed-chunk-1-1.png) Next we
+look turn to look at the most recent year in Figure Two. When we look at
+the highlighted names towards the top of 3-point FG attempts, we see
+that four out of five of these players are on the **same** team. What
+also sticks out is a player like Demar Derozan, a shooting guard,
+leading this group in 2-point FG attempts. In this day and age, it'd
+almost be absurd to take this many two's at his position.
+
+![](Project_files/figure-markdown_strict/unnamed-chunk-2-1.png) Moving
+on to the predictive model portion, after generating a big tree, and
+pruning it down. The model RMSE is at an exceptionally low 47.73. I'm
+not too sure why it's so low, perhaps the additions of PCA really help
+drive the tree and it's predictive powers.
